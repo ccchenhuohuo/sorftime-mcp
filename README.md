@@ -62,7 +62,7 @@ uvx --version
 npx --version
 ```
 
-> npm 包当前是一个轻量启动器，会调用 `uvx` 运行 PyPI 上的 Python MCP 包。因此使用 `npx -y sorftime-mcp` 时，本机也必须已经安装 `uvx`。
+> npm 包当前是一个轻量启动器，会调用 `uvx` 运行 PyPI 上当前可安装的 `sorftime-mcp` Python 包。因此使用 `npx -y sorftime-mcp` 时，本机也必须已经安装 `uvx`。
 
 ## Codex 安装
 

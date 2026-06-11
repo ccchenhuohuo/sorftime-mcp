@@ -26,6 +26,6 @@
     "access": "public"
   },
   "scripts": {
-    "test": "node --check bin/sorftime-mcp.js"
+    "test": "node --check bin/sorftime-mcp.js && node bin/sorftime-mcp.js --help"
   }
 }
