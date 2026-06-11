@@ -1,6 +1,7 @@
 import pytest
 from fastmcp import Client
 
+from sorftime_mcp.audit import AuditLogger
 from sorftime_mcp.catalog import (
     HIGH_FREQUENCY_METHODS,
     METHOD_DEFINITIONS,
@@ -9,6 +10,14 @@ from sorftime_mcp.catalog import (
     UNSAFE_METHODS,
 )
 from sorftime_mcp.server import create_mcp
+
+
+class FailingAuditLogger(AuditLogger):
+    def __init__(self) -> None:
+        pass
+
+    def log(self, record) -> None:
+        raise OSError("audit sink failed")
 
 
 async def test_mcp_lists_exactly_public_tools(settings, fake_client) -> None:
@@ -57,6 +66,10 @@ async def test_discovery_tools_return_method_summary_and_schema(settings, fake_c
     assert len(schema_result.data["domains"]) == 14
     assert schema_result.data["required"] == ["ASIN"]
     assert schema_result.data["shortcutTool"] == "product_request"
+    assert schema_result.data["readOnly"] is True
+    assert schema_result.data["startsTask"] is False
+    assert schema_result.data["retrySafe"] is True
+    assert schema_result.data["costUnit"] == "request"
     assert schema_result.data["examples"]
     assert "jsonSchema" in schema_result.data
     assert "1=US" in schema_result.data["jsonSchema"]["properties"]["domain"]["description"]
@@ -95,6 +108,7 @@ async def test_sorftime_call_routes_low_frequency_method(settings, fake_client) 
                 "Page": 1,
             },
             "estimated_request_cost": 2,
+            "max_retries": None,
         }
     ]
     assert result.data["endpoint"] == "ASINKeywordRanking"
@@ -126,6 +140,35 @@ async def test_shortcut_and_router_share_same_payload_path(settings, fake_client
         )
 
     assert fake_client.calls[0] == fake_client.calls[1]
+
+
+async def test_task_starting_methods_disable_client_retries(settings, fake_client) -> None:
+    mcp = create_mcp(settings=settings, client=fake_client)
+
+    async with Client(mcp) as client:
+        await client.call_tool(
+            "sorftime_call",
+            {"input": {"method": "ProductAssistant", "params": {"Asin": "B000000001", "Type": 0}}},
+        )
+
+    assert fake_client.calls == [
+        {
+            "endpoint": "ProductAssistant",
+            "domain": 1,
+            "payload": {"Asin": "B000000001", "Type": 0},
+            "estimated_request_cost": 25,
+            "max_retries": 0,
+        }
+    ]
+
+
+async def test_audit_failure_does_not_fail_successful_tool_call(settings, fake_client) -> None:
+    mcp = create_mcp(settings=settings, client=fake_client, audit_logger=FailingAuditLogger())
+
+    async with Client(mcp) as client:
+        result = await client.call_tool("product_request", {"input": {"asin": "B0CVM8TXHP"}})
+
+    assert result.data["data"]["ok"] is True
 
 
 async def test_all_safe_methods_have_valid_router_minimal_payloads(settings, fake_client) -> None:
@@ -174,6 +217,13 @@ async def test_all_safe_methods_have_valid_router_minimal_payloads(settings, fak
 
 
 def test_registry_metadata_is_complete_and_safe() -> None:
+    task_methods = {
+        "ProductRealtimeRequest",
+        "ProductReviewsCollection",
+        "SimilarProductRealtimeRequest",
+        "ProductAssistant",
+        "CategoryAssistant",
+    }
     assert not UNSAFE_METHODS.intersection(METHOD_REGISTRY)
     for definition in METHOD_DEFINITIONS:
         assert definition.method
@@ -182,8 +232,14 @@ def test_registry_metadata_is_complete_and_safe() -> None:
         assert definition.description
         assert definition.request_cost_note
         assert definition.examples
-        assert definition.read_only is True
         assert callable(definition.estimate_cost)
+        if definition.method in task_methods:
+            assert definition.read_only is False
+            assert definition.starts_task is True
+            assert definition.retry_safe is False
+        else:
+            assert definition.read_only is True
+            assert definition.starts_task is False
 
 
 def test_high_frequency_methods_declare_shortcuts() -> None:

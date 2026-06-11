@@ -1,7 +1,7 @@
 [project]
 name = "sorftime-mcp"
-version = "0.1.0"
-description = "Stdio MCP server for read-only Sorftime Enterprise API access."
+version = "0.1.1"
+description = "Stdio MCP server for whitelisted Sorftime Enterprise API access."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

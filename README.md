@@ -24,7 +24,7 @@ Sorftime MCP 以 `stdio` 方式运行，把 Sorftime 的产品、类目、关键
 
 - Agent 原生：工具命名、参数结构和返回格式面向 AI Agent 调用设计。
 - 小工具面：只公开 10 个 MCP 工具，降低 Agent 选错工具的概率。
-- 覆盖安全取数：通过 `sorftime_call` 白名单路由覆盖 32 个安全 Sorftime 方法。
+- 白名单路由：通过 `sorftime_call` 覆盖 32 个经过登记的方法，并在 schema 中标明是否只读、是否会触发任务、是否可安全重试。
 - 可发现 schema：Agent 可以先查询 `sorftime_methods` 和 `sorftime_method_schema`，再决定调用方式。
 - 统一返回：所有真实 Sorftime 请求都返回相同 envelope，便于后续分析、审计和错误处理。
 - 凭证隔离：Sorftime Account-SK 只放在 MCP 客户端环境变量中，不写入仓库。
@@ -36,9 +36,10 @@ Sorftime MCP 以 `stdio` 方式运行，把 Sorftime 的产品、类目、关键
 | 传输方式 | `stdio` |
 | 必需环境变量 | `SORFTIME_API_KEY` |
 | 公开 MCP 工具 | 10 个 |
-| 安全取数方法 | 32 个 |
+| 白名单方法 | 32 个 |
 | 默认站点 | `domain=1`，US 美国站 |
 | 包发布 | PyPI：`sorftime-mcp`；npm：`sorftime-mcp` |
+| Sorftime API 地址 | 固定为 `https://standardapi.sorftime.com/api` |
 | 返回格式 | `endpoint`、`domain`、`estimatedRequestCost`、`requestConsumed`、`requestLeft`、`code`、`message`、`data`、`rawResponse` |
 
 ## 安装前置条件
@@ -136,7 +137,7 @@ Sorftime MCP 使用三层工具结构：
 | --- | --- | --- |
 | 发现 | `sorftime_methods` | 查看支持的方法、分类、消耗、是否异步、是否有快捷工具 |
 | 发现 | `sorftime_method_schema` | 查看单个方法的参数、示例、站点映射和消耗说明 |
-| 路由 | `sorftime_call` | 白名单路由工具，用于调用低频安全取数方法 |
+| 路由 | `sorftime_call` | 白名单路由工具，用于调用低频 Sorftime 方法 |
 | 快捷 | `product_request` | 产品详情，对应 `ProductRequest` |
 | 快捷 | `category_request` | 类目 Top 100，对应 `CategoryRequest` |
 | 快捷 | `keyword_request` | 关键词详情，对应 `KeywordRequest` |
@@ -145,7 +146,14 @@ Sorftime MCP 使用三层工具结构：
 | 快捷 | `request_stream_month` | Request 使用和余额，对应 `RequestStreamMonth` |
 | 快捷 | `coin_query` | 积分余额，对应 `CoinQuery` |
 
-常用查询优先使用快捷工具。低频查询通过 `sorftime_call` 调用，调用前先用 `sorftime_methods` 和 `sorftime_method_schema` 确认 method、参数和 request 消耗。
+常用查询优先使用快捷工具。低频查询通过 `sorftime_call` 调用，调用前先用 `sorftime_methods` 和 `sorftime_method_schema` 确认 method、参数、request 消耗和风险元数据。
+
+`sorftime_methods` 和 `sorftime_method_schema` 会返回：
+
+- `readOnly`：是否只查询已有数据
+- `startsTask`：是否会触发 Sorftime 侧采集或 AI 分析任务
+- `retrySafe`：失败后是否允许客户端自动重试
+- `costUnit`：估算消耗单位，当前为 `request` 或 `coin`
 
 ## 调用示例
 
@@ -237,11 +245,13 @@ Agent 应优先读取：
 
 ## 安全边界
 
-当前版本只开放安全取数接口，默认不开放：
+当前版本只开放白名单方法，默认不开放：
 
 - 收藏词新增、修改、删除等账户状态变更接口
 - 关键词监控、榜单监控、跟卖库存监控、ASIN 订阅等订阅管理接口
 - 消耗监控点数或订阅点数、但不属于通用取数的接口
+
+部分白名单方法会触发 Sorftime 侧异步任务，例如实时采集、评论采集、图片相似品搜索和 AI 分析。这类方法会在 schema 中标记 `startsTask=true`、`readOnly=false`、`retrySafe=false`，客户端不会对它们自动重试。
 
 Sorftime Account-SK 不应该写入 README、Issue、PR、聊天记录或代码仓库。只应放在 MCP 客户端配置的环境变量中。
 

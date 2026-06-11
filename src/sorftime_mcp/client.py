@@ -45,8 +45,9 @@ class SorftimeClient:
         domain: int,
         payload: dict[str, Any],
         estimated_request_cost: int,
+        max_retries: int | None = None,
     ) -> SorftimeResponse:
-        response_json = await self._post(endpoint=endpoint, domain=domain, payload=payload)
+        response_json = await self._post(endpoint=endpoint, domain=domain, payload=payload, max_retries=max_retries)
         code = _pick(response_json, "code", "Code")
         message = _pick(response_json, "message", "Message")
         return SorftimeResponse(
@@ -61,18 +62,26 @@ class SorftimeClient:
             raw_response=response_json,
         )
 
-    async def _post(self, *, endpoint: str, domain: int, payload: dict[str, Any]) -> dict[str, Any]:
+    async def _post(
+        self,
+        *,
+        endpoint: str,
+        domain: int,
+        payload: dict[str, Any],
+        max_retries: int | None,
+    ) -> dict[str, Any]:
         last_error: Exception | None = None
-        for attempt in range(self._settings.sorftime_api_max_retries + 1):
+        resolved_max_retries = self._settings.sorftime_api_max_retries if max_retries is None else max_retries
+        for attempt in range(resolved_max_retries + 1):
             try:
                 return await self._post_once(endpoint=endpoint, domain=domain, payload=payload)
             except httpx.HTTPStatusError as exc:
                 last_error = exc
-                if not _should_retry_status(exc.response.status_code, attempt, self._settings.sorftime_api_max_retries):
+                if not _should_retry_status(exc.response.status_code, attempt, resolved_max_retries):
                     raise
             except (httpx.ConnectError, httpx.NetworkError, httpx.RemoteProtocolError, httpx.TimeoutException) as exc:
                 last_error = exc
-                if attempt >= self._settings.sorftime_api_max_retries:
+                if attempt >= resolved_max_retries:
                     raise
             await asyncio.sleep(self._retry_delay(attempt))
         if last_error is not None:

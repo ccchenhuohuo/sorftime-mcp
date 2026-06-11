@@ -31,6 +31,7 @@ class FakeSorftimeClient:
         domain: int,
         payload: dict[str, Any],
         estimated_request_cost: int,
+        max_retries: int | None = None,
     ):
         from sorftime_mcp.client import SorftimeResponse
 
@@ -40,6 +41,7 @@ class FakeSorftimeClient:
                 "domain": domain,
                 "payload": payload,
                 "estimated_request_cost": estimated_request_cost,
+                "max_retries": max_retries,
             }
         )
         raw = {

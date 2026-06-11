@@ -1,6 +1,27 @@
 import httpx
+import pytest
+from pydantic import ValidationError
 
 from sorftime_mcp.client import SorftimeClient
+from sorftime_mcp.config import SORFTIME_API_BASE_URL, Settings
+
+
+def test_settings_do_not_load_local_env_or_override_base_url(tmp_path, monkeypatch) -> None:
+    (tmp_path / ".env").write_text(
+        "SORFTIME_API_KEY=env-file-key\nSORFTIME_API_BASE_URL=https://example.invalid/api\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("SORFTIME_API_KEY", raising=False)
+    monkeypatch.delenv("SORFTIME_API_BASE_URL", raising=False)
+
+    with pytest.raises(ValidationError):
+        Settings()
+
+    settings = Settings(SORFTIME_API_KEY="explicit-key")
+
+    assert settings.api_key == "explicit-key"
+    assert settings.api_base_url == SORFTIME_API_BASE_URL
 
 
 async def test_client_builds_url_headers_and_normalizes_response(settings) -> None:
@@ -56,3 +77,25 @@ async def test_client_retries_retryable_status(settings) -> None:
 
     assert calls == 2
     assert result.data == {"ok": True}
+
+
+async def test_client_can_disable_retries_for_non_idempotent_methods(settings) -> None:
+    calls = 0
+
+    async def handler(_: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(500, json={"Code": 500, "Message": "temporary"})
+
+    client = SorftimeClient(settings, transport=httpx.MockTransport(handler))
+
+    with pytest.raises(httpx.HTTPStatusError):
+        await client.call(
+            endpoint="ProductAssistant",
+            domain=1,
+            payload={"Asin": "B000000001", "Type": 0},
+            estimated_request_cost=25,
+            max_retries=0,
+        )
+
+    assert calls == 1

@@ -1,6 +1,6 @@
 {
   "name": "sorftime-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Sorftime API MCP stdio launcher for Codex and Claude Code.",
   "bin": {
     "sorftime-mcp": "bin/sorftime-mcp.js"
