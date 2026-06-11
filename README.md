@@ -1,43 +1,143 @@
-# Sorftime MCP Server
+# Sorftime MCP
 
-Remote MCP server for read-only Sorftime Enterprise API access. It keeps the Sorftime Account-SK on the server, authenticates colleagues with per-user Bearer JWTs, and writes JSON audit logs for every call.
+把 Sorftime Enterprise API 封装成 Codex、Claude Code 等 AI Agent 可直接调用的 MCP 服务。
 
-## Public Tools
+本项目默认使用 `stdio` 模式，本地安装后只需要配置 `SORFTIME_API_KEY`。Sorftime Account-SK 保存在使用者自己的 MCP 客户端配置或服务器环境变量中，不写入代码仓库。
 
-The server exposes 10 MCP tools. High-frequency methods have shortcut tools; all other safe read-only methods are available through the strict registry-backed `sorftime_call` router.
+## 重点
 
-| Tool | Purpose |
+- 默认传输：`stdio`
+- 本地必需环境变量：`SORFTIME_API_KEY`
+- 公开 MCP 工具数：10 个
+- 支持安全取数方法：32 个
+- 默认站点：`domain=1`，即美国站
+- 返回统一结构：`endpoint`、`domain`、`estimatedRequestCost`、`requestConsumed`、`requestLeft`、`code`、`message`、`data`、`rawResponse`
+- 默认排除账户修改、订阅管理、监控任务管理类接口
+
+## 安装方式
+
+### npm 安装
+
+Codex 配置：
+
+```toml
+[mcp_servers.sorftime]
+command = "npx"
+args = ["-y", "sorftime-mcp"]
+
+[mcp_servers.sorftime.env]
+SORFTIME_API_KEY = "你的 Sorftime Account-SK"
+```
+
+Claude Code 安装：
+
+```bash
+claude mcp add --scope user \
+  -e SORFTIME_API_KEY="你的 Sorftime Account-SK" \
+  sorftime -- npx -y sorftime-mcp
+```
+
+### PyPI 安装
+
+Codex 配置：
+
+```toml
+[mcp_servers.sorftime]
+command = "uvx"
+args = ["sorftime-mcp"]
+
+[mcp_servers.sorftime.env]
+SORFTIME_API_KEY = "你的 Sorftime Account-SK"
+```
+
+Claude Code 安装：
+
+```bash
+claude mcp add --scope user \
+  -e SORFTIME_API_KEY="你的 Sorftime Account-SK" \
+  sorftime -- uvx sorftime-mcp
+```
+
+### GitHub 源码安装
+
+```bash
+uvx --from git+https://github.com/ccchenhuohuo/sorftime-mcp.git sorftime-mcp
+```
+
+对应 Codex 配置：
+
+```toml
+[mcp_servers.sorftime]
+command = "uvx"
+args = [
+  "--from",
+  "git+https://github.com/ccchenhuohuo/sorftime-mcp.git",
+  "sorftime-mcp"
+]
+
+[mcp_servers.sorftime.env]
+SORFTIME_API_KEY = "你的 Sorftime Account-SK"
+```
+
+## 工具列表
+
+| 工具 | 用途 |
 | --- | --- |
-| `sorftime_methods` | List supported Sorftime methods, categories, costs, async flags, and shortcuts. |
-| `sorftime_method_schema` | Get schema, required/optional params, examples, and cost notes for one method. |
-| `sorftime_call` | Call any whitelisted read-only method with validated Sorftime-native params. |
-| `product_request` | Shortcut for `ProductRequest`. |
-| `category_request` | Shortcut for `CategoryRequest`. |
-| `keyword_request` | Shortcut for `KeywordRequest`. |
-| `product_query` | Shortcut for `ProductQuery`. |
-| `category_trend` | Shortcut for `CategoryTrend`. |
-| `request_stream_month` | Shortcut for `RequestStreamMonth`. |
-| `coin_query` | Shortcut for `CoinQuery`. |
+| `sorftime_methods` | 查看支持的方法、分类、消耗、是否异步、是否有快捷工具 |
+| `sorftime_method_schema` | 查看单个方法的参数、示例、站点映射和消耗说明 |
+| `sorftime_call` | 白名单路由工具，用于调用低频安全取数方法 |
+| `product_request` | 产品详情，对应 `ProductRequest` |
+| `category_request` | 类目 Top 100，对应 `CategoryRequest` |
+| `keyword_request` | 关键词详情，对应 `KeywordRequest` |
+| `product_query` | 产品搜索，对应 `ProductQuery` |
+| `category_trend` | 类目趋势，对应 `CategoryTrend` |
+| `request_stream_month` | Request 使用和余额，对应 `RequestStreamMonth` |
+| `coin_query` | 积分余额，对应 `CoinQuery` |
 
-Mutating account tools and subscription/monitoring management endpoints are intentionally excluded from v1.
+高频场景优先使用快捷工具。低频场景使用 `sorftime_call`，先用 `sorftime_methods` 和 `sorftime_method_schema` 查询 method 和参数。
 
-Every API call returns:
+## 调用示例
+
+查询产品详情：
 
 ```json
 {
-  "endpoint": "ProductRequest",
-  "domain": 1,
-  "estimatedRequestCost": 1,
-  "requestConsumed": 1,
-  "requestLeft": 1200,
-  "data": {},
-  "rawResponse": {}
+  "input": {
+    "asin": "B0CVM8TXHP",
+    "domain": 1,
+    "trend": 1
+  }
 }
 ```
 
-`domain` defaults to `1` (`US`). Discovery responses include the full Sorftime domain mapping:
+通过路由查询销量估算：
 
-| domain | Site |
+```json
+{
+  "input": {
+    "method": "AsinSalesVolume",
+    "domain": 1,
+    "params": {
+      "ASIN": "B0CVM8TXHP",
+      "Page": 1
+    }
+  }
+}
+```
+
+查看某个方法的参数：
+
+```json
+{
+  "input": {
+    "method": "ProductRequest"
+  }
+}
+```
+
+## 站点映射
+
+| domain | 站点 |
 | --- | --- |
 | 1 | US 美国 |
 | 2 | GB 英国 |
@@ -54,178 +154,48 @@ Every API call returns:
 | 13 | BR 巴西 |
 | 14 | SA 沙特阿拉伯 |
 
-Historical backfill is not supported for IN, AE, AU, BR, or SA.
+IN、AE、AU、BR、SA 不支持历史数据回填。
 
-## Router Examples
+## 返回结构
 
-List supported methods:
-
-```json
-{
-  "input": {
-    "category": "product"
-  }
-}
-```
-
-Get a method schema:
+所有真实 Sorftime 请求都返回统一结构：
 
 ```json
 {
-  "input": {
-    "method": "ProductRequest"
-  }
+  "endpoint": "ProductRequest",
+  "domain": 1,
+  "estimatedRequestCost": 1,
+  "requestConsumed": 1,
+  "requestLeft": 1200,
+  "code": 0,
+  "message": null,
+  "data": {},
+  "rawResponse": {}
 }
 ```
 
-Call a low-frequency method through `sorftime_call`:
+Agent 应优先读取 `code`、`message`、`data`、`requestConsumed` 和 `requestLeft`。
 
-```json
-{
-  "input": {
-    "method": "ASINKeywordRanking",
-    "domain": 1,
-    "params": {
-      "Keyword": "power bank",
-      "ASIN": "B07CZDXDG8",
-      "QueryStart": "2024-12-01",
-      "QueryEnd": "2025-01-01",
-      "Page": 1
-    }
-  }
-}
-```
+## 安全边界
 
-Shortcut tools use friendlier snake_case params:
+v1 只开放安全取数接口，默认不开放：
 
-```json
-{
-  "input": {
-    "asin": "B0CVM8TXHP",
-    "trend": 1
-  }
-}
-```
+- 收藏词新增、修改、删除等账户状态变更接口
+- 关键词监控、榜单监控、跟卖库存监控、ASIN 订阅等订阅管理接口
+- 消耗监控点数或订阅点数、但不属于通用取数的接口
 
-Internally, shortcuts and `sorftime_call` use the same registry, validator, cost estimator, Sorftime client, and audit logger.
+## 审计日志
 
-## Local Setup
+默认不向标准输出写日志，避免污染 MCP stdio 协议。需要审计记录时，通过环境变量写入本地 JSONL 文件：
 
 ```bash
-cd mcp/sorftime-mcp
-cp .env.example .env
-uv sync
-```
-
-Set these values in `.env` or in your deployment secret store:
-
-```bash
-SORFTIME_API_KEY=...
-SORFTIME_MCP_JWT_SECRET=...
-SORFTIME_MCP_ISSUER=sorftime-mcp
-SORFTIME_MCP_AUDIENCE=sorftime-mcp-users
-```
-
-Do not commit the real Sorftime Account-SK.
-
-Optional tuning:
-
-```bash
-SORFTIME_API_TIMEOUT_SECONDS=120
-SORFTIME_API_MAX_RETRIES=3
-SORFTIME_API_RETRY_BASE_DELAY_SECONDS=2
-SORFTIME_API_RETRY_MAX_DELAY_SECONDS=15
 SORFTIME_AUDIT_LOG_PATH=logs/sorftime-mcp-audit.jsonl
 ```
 
-## Issue Colleague Tokens
+审计日志会记录 endpoint、domain、参数摘要、估算消耗、实际消耗、剩余 Request、耗时和 Sorftime 返回码。日志不会记录 Sorftime Account-SK。
 
-```bash
-uv run sorftime-mcp issue-token --user alice --expires-days 30
-```
-
-The token is a Bearer JWT. Audit logs use the JWT `sub` claim as the caller identity.
-
-## Run Locally
-
-Stdio mode for local MCP clients such as Codex:
-
-```bash
-uv run sorftime-mcp stdio
-```
-
-In stdio mode, audit logs are not emitted to stdout because stdout is reserved for the MCP protocol. Set `SORFTIME_AUDIT_LOG_PATH` if you want local audit logs.
-
-HTTP mode for remote deployment:
-
-```bash
-uv run sorftime-mcp serve --host 0.0.0.0 --port 8000
-```
-
-Health check:
-
-```bash
-curl http://localhost:8000/health
-```
-
-MCP endpoint:
+## 仓库
 
 ```text
-http://localhost:8000/mcp
-```
-
-Clients must send:
-
-```http
-Authorization: Bearer <issued-token>
-```
-
-## Codex MCP Config
-
-Example stdio configuration:
-
-```toml
-[mcp_servers.sorftime]
-command = "uvx"
-args = ["--from", "git+https://github.com/ccchenhuohuo/sorftime-mcp.git", "sorftime-mcp", "stdio"]
-startup_timeout_sec = 180
-
-[mcp_servers.sorftime.env]
-SORFTIME_API_KEY = "replace-with-server-side-account-sk"
-SORFTIME_MCP_JWT_SECRET = "replace-with-long-random-string"
-SORFTIME_AUDIT_LOG_PATH = "/Users/chenyu/.codex/logs/sorftime_mcp_audit.jsonl"
-```
-
-## OpenCloud Deployment
-
-Build and deploy this directory as a container. Configure secrets in OpenCloud environment variables, not in the image:
-
-```bash
-docker build -t sorftime-mcp .
-docker run -p 8000:8000 \
-  -e SORFTIME_API_KEY=... \
-  -e SORFTIME_MCP_JWT_SECRET=... \
-  -e SORFTIME_MCP_ISSUER=sorftime-mcp \
-  -e SORFTIME_MCP_AUDIENCE=sorftime-mcp-users \
-  sorftime-mcp
-```
-
-The Docker command starts:
-
-```bash
-uvicorn sorftime_mcp.server:create_app --factory --host 0.0.0.0 --port 8000
-```
-
-## Audit Logs
-
-Audit records are JSON lines written to stdout. Set `SORFTIME_AUDIT_LOG_PATH=logs/sorftime-mcp-audit.jsonl` to also write locally.
-
-Each record includes timestamp, user, endpoint, domain, sanitized parameter summary, estimated request cost, actual consumed value when Sorftime returns it, requestLeft, latency, status, and Sorftime code/message.
-
-Secrets, bearer tokens, authorization headers, and base64 images are redacted.
-
-## Tests
-
-```bash
-uv run pytest
+https://github.com/ccchenhuohuo/sorftime-mcp
 ```

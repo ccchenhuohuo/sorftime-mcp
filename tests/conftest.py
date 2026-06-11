@@ -17,12 +17,7 @@ class MemoryAuditLogger(AuditLogger):
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(
-        SORFTIME_API_KEY="test-sorftime-key",
-        SORFTIME_MCP_JWT_SECRET="test-jwt-secret-with-at-least-32-bytes",
-        SORFTIME_MCP_ISSUER="sorftime-mcp",
-        SORFTIME_MCP_AUDIENCE="sorftime-mcp-users",
-    )
+    return Settings(SORFTIME_API_KEY="test-sorftime-key")
 
 
 class FakeSorftimeClient:

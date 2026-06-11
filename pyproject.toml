@@ -1,7 +1,7 @@
 [project]
 name = "sorftime-mcp"
 version = "0.1.0"
-description = "Remote MCP server for read-only Sorftime Enterprise API access."
+description = "Stdio MCP server for read-only Sorftime Enterprise API access."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -10,12 +10,13 @@ dependencies = [
     "httpx>=0.27.2",
     "pydantic>=2.10.6",
     "pydantic-settings>=2.8.1",
-    "pyjwt>=2.10.1",
-    "uvicorn[standard]>=0.34.0",
 ]
 
 [project.scripts]
 sorftime-mcp = "sorftime_mcp.cli:cli"
+
+[project.urls]
+Repository = "https://github.com/ccchenhuohuo/sorftime-mcp"
 
 [dependency-groups]
 dev = [

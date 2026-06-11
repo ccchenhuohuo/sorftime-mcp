@@ -1,10 +1,8 @@
 from typing import Any
 
 from fastmcp import FastMCP
-from starlette.responses import JSONResponse
 
 from sorftime_mcp.audit import AuditLogger
-from sorftime_mcp.auth import create_auth_provider
 from sorftime_mcp.catalog import (
     METHOD_DEFINITIONS,
     PUBLIC_TOOL_DEFINITIONS,
@@ -25,15 +23,9 @@ def create_mcp(
     settings: Settings | None = None,
     client: SorftimeClient | None = None,
     audit_logger: AuditLogger | None = None,
-    enable_auth: bool = True,
 ) -> FastMCP:
     resolved_settings = settings or load_settings()
-    auth_provider = create_auth_provider(resolved_settings) if enable_auth else None
-    mcp = FastMCP(name="Sorftime API MCP", auth=auth_provider)
-
-    @mcp.custom_route("/health", methods=["GET"], include_in_schema=False)
-    async def health(_: Any) -> JSONResponse:
-        return JSONResponse({"status": "ok", "service": "sorftime-mcp"})
+    mcp = FastMCP(name="Sorftime API MCP")
 
     executor = ToolExecutor(
         client=client or SorftimeClient(resolved_settings),
@@ -42,11 +34,6 @@ def create_mcp(
     for definition in PUBLIC_TOOL_DEFINITIONS:
         register_tool(mcp, executor, definition)
     return mcp
-
-
-def create_app(settings: Settings | None = None):
-    mcp = create_mcp(settings=settings)
-    return mcp.http_app(path="/mcp")
 
 
 def register_tool(mcp: FastMCP, executor: ToolExecutor, definition: PublicToolDefinition) -> None:

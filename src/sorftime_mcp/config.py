@@ -30,21 +30,11 @@ class Settings(BaseSettings):
         gt=0,
         alias="SORFTIME_API_RETRY_MAX_DELAY_SECONDS",
     )
-    sorftime_mcp_jwt_secret: SecretStr = Field(alias="SORFTIME_MCP_JWT_SECRET")
-    sorftime_mcp_issuer: str = Field(default="sorftime-mcp", alias="SORFTIME_MCP_ISSUER")
-    sorftime_mcp_audience: str = Field(
-        default="sorftime-mcp-users",
-        alias="SORFTIME_MCP_AUDIENCE",
-    )
     sorftime_audit_log_path: Path | None = Field(default=None, alias="SORFTIME_AUDIT_LOG_PATH")
 
     @property
     def api_key(self) -> str:
         return self.sorftime_api_key.get_secret_value()
-
-    @property
-    def jwt_secret(self) -> str:
-        return self.sorftime_mcp_jwt_secret.get_secret_value()
 
     @property
     def api_base_url(self) -> str:

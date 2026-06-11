@@ -12,7 +12,7 @@ from sorftime_mcp.server import create_mcp
 
 
 async def test_mcp_lists_exactly_public_tools(settings, fake_client) -> None:
-    mcp = create_mcp(settings=settings, client=fake_client, enable_auth=False)
+    mcp = create_mcp(settings=settings, client=fake_client)
 
     async with Client(mcp) as client:
         tools = await client.list_tools()
@@ -21,8 +21,17 @@ async def test_mcp_lists_exactly_public_tools(settings, fake_client) -> None:
     assert len(tools) == 10
 
 
+async def test_stdio_mcp_requires_only_sorftime_api_key(settings, fake_client) -> None:
+    mcp = create_mcp(settings=settings, client=fake_client)
+
+    async with Client(mcp) as client:
+        tools = await client.list_tools()
+
+    assert {tool.name for tool in tools} == set(PUBLIC_TOOL_NAMES)
+
+
 async def test_discovery_tools_return_method_summary_and_schema(settings, fake_client) -> None:
-    mcp = create_mcp(settings=settings, client=fake_client, enable_auth=False)
+    mcp = create_mcp(settings=settings, client=fake_client)
 
     async with Client(mcp) as client:
         methods_result = await client.call_tool("sorftime_methods", {"input": {"category": "product"}})
@@ -54,7 +63,7 @@ async def test_discovery_tools_return_method_summary_and_schema(settings, fake_c
 
 
 async def test_sorftime_call_routes_low_frequency_method(settings, fake_client) -> None:
-    mcp = create_mcp(settings=settings, client=fake_client, enable_auth=False)
+    mcp = create_mcp(settings=settings, client=fake_client)
 
     async with Client(mcp) as client:
         result = await client.call_tool(
@@ -92,7 +101,7 @@ async def test_sorftime_call_routes_low_frequency_method(settings, fake_client) 
 
 
 async def test_sorftime_call_rejects_unknown_method_and_invalid_params(settings, fake_client) -> None:
-    mcp = create_mcp(settings=settings, client=fake_client, enable_auth=False)
+    mcp = create_mcp(settings=settings, client=fake_client)
 
     async with Client(mcp) as client:
         with pytest.raises(Exception):
@@ -107,7 +116,7 @@ async def test_sorftime_call_rejects_unknown_method_and_invalid_params(settings,
 
 
 async def test_shortcut_and_router_share_same_payload_path(settings, fake_client) -> None:
-    mcp = create_mcp(settings=settings, client=fake_client, enable_auth=False)
+    mcp = create_mcp(settings=settings, client=fake_client)
 
     async with Client(mcp) as client:
         await client.call_tool("product_request", {"input": {"asin": "B0CVM8TXHP", "trend": 1}})
@@ -156,7 +165,7 @@ async def test_all_safe_methods_have_valid_router_minimal_payloads(settings, fak
     }
     assert set(samples) == set(METHOD_REGISTRY)
 
-    mcp = create_mcp(settings=settings, client=fake_client, enable_auth=False)
+    mcp = create_mcp(settings=settings, client=fake_client)
     async with Client(mcp) as client:
         for method, params in samples.items():
             await client.call_tool("sorftime_call", {"input": {"method": method, "params": params}})

@@ -1,0 +1,31 @@
+{
+  "name": "sorftime-mcp",
+  "version": "0.1.0",
+  "description": "Sorftime API MCP stdio launcher for Codex and Claude Code.",
+  "bin": {
+    "sorftime-mcp": "bin/sorftime-mcp.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ccchenhuohuo/sorftime-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "sorftime",
+    "codex",
+    "claude-code"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "node --check bin/sorftime-mcp.js"
+  }
+}

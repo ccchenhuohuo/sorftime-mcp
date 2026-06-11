@@ -1,7 +1,6 @@
 import time
 from typing import Any
 
-from fastmcp.server.dependencies import get_access_token
 from pydantic import BaseModel
 
 from sorftime_mcp.audit import AuditLogger, sanitize_for_audit, utc_now_iso
@@ -31,7 +30,6 @@ class ToolExecutor:
     async def execute_method(self, definition: MethodDefinition, model: SorftimeInput) -> dict[str, Any]:
         payload = model.to_payload()
         estimated_cost = definition.estimate_cost(model)
-        user = current_user()
         start = time.perf_counter()
         response: SorftimeResponse | None = None
         status = "ok"
@@ -55,7 +53,6 @@ class ToolExecutor:
             self._audit_logger.log(
                 {
                     "timestamp": utc_now_iso(),
-                    "user": user,
                     "endpoint": definition.endpoint,
                     "domain": model.domain,
                     "params": sanitize_for_audit(payload),
@@ -68,19 +65,3 @@ class ToolExecutor:
                     "sorftimeMessage": response.message if response is not None else error_message,
                 }
             )
-
-
-def current_user() -> str:
-    try:
-        token = get_access_token()
-    except RuntimeError:
-        return "anonymous"
-    if token is None:
-        return "anonymous"
-    claims = getattr(token, "claims", None)
-    if isinstance(claims, dict) and isinstance(claims.get("sub"), str):
-        return claims["sub"]
-    client_id = getattr(token, "client_id", None)
-    if isinstance(client_id, str) and client_id != "":
-        return client_id
-    return "anonymous"
