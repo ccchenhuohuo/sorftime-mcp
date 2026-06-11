@@ -5,9 +5,10 @@ const { spawn } = require("node:child_process");
 
 const userArgs = process.argv.slice(2);
 const pythonArgs = userArgs.length === 0 ? ["stdio"] : userArgs;
+const pythonPackage = "sorftime-mcp";
 const child = spawn(
   "uvx",
-  ["--from", "sorftime-mcp", "sorftime-mcp", ...pythonArgs],
+  ["--from", pythonPackage, "sorftime-mcp", ...pythonArgs],
   {
     env: process.env,
     stdio: "inherit"

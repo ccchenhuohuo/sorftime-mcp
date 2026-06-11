@@ -1,9 +1,11 @@
 from datetime import date
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from sorftime_mcp.domains import DOMAIN_ID_DESCRIPTION
+
+NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 class SorftimeInput(BaseModel):
@@ -27,25 +29,25 @@ class NoPayloadInput(SorftimeInput):
 
 
 class CategoryRequestInput(SorftimeInput):
-    node_id: str = Field(alias="NodeId")
+    node_id: NonEmptyStr = Field(alias="NodeId")
     query_start: date | None = Field(default=None, alias="QueryStart")
     query_date: date | None = Field(default=None, alias="QueryDate")
     query_days: int | None = Field(default=None, ge=1, le=40, alias="QueryDays")
 
 
 class CategoryProductsInput(SorftimeInput):
-    node_id: str = Field(alias="NodeId")
+    node_id: NonEmptyStr = Field(alias="NodeId")
     page: int | None = Field(default=None, ge=1, alias="Page")
     range_limit: int | None = Field(default=None, ge=1, alias="Range")
 
 
 class CategoryTrendInput(SorftimeInput):
-    node_id: str = Field(alias="NodeId")
+    node_id: NonEmptyStr = Field(alias="NodeId")
     trend_index: int = Field(ge=0, le=15, alias="TrendIndex")
 
 
 class ProductRequestInput(SorftimeInput):
-    asin: str | list[str] = Field(alias="ASIN")
+    asin: NonEmptyStr | list[NonEmptyStr] = Field(alias="ASIN")
     trend: int | None = Field(default=1, ge=1, le=2, alias="Trend")
     query_trend_start_dt: date | None = Field(default=None, alias="QueryTrendStartDt")
     query_trend_end_dt: date | None = Field(default=None, alias="QueryTrendEndDt")
@@ -69,23 +71,23 @@ class ProductRequestInput(SorftimeInput):
 class ProductQueryInput(SorftimeInput):
     page: int | None = Field(default=None, ge=1, alias="Page")
     query: int | None = Field(default=None, ge=1, le=2, alias="Query")
-    query_type: str | None = Field(default=None, alias="QueryType")
+    query_type: NonEmptyStr | None = Field(default=None, alias="QueryType")
     pattern: Any | None = Field(default=None, alias="Pattern")
 
 
 class AsinSalesVolumeInput(SorftimeInput):
-    asin: str = Field(alias="ASIN")
+    asin: NonEmptyStr = Field(alias="ASIN")
     page: int | None = Field(default=None, ge=1, alias="Page")
     query_date: date | None = Field(default=None, alias="QueryDate")
     query_end_date: date | None = Field(default=None, alias="QueryEndDate")
 
 
 class ProductVariationHistoryInput(SorftimeInput):
-    asin: str = Field(alias="ASIN")
+    asin: NonEmptyStr = Field(alias="ASIN")
 
 
 class ProductRealtimeRequestInput(SorftimeInput):
-    asin: str = Field(alias="ASIN")
+    asin: NonEmptyStr = Field(alias="ASIN")
     update: int | None = Field(default=None, ge=1, le=120, alias="Update")
 
 
@@ -94,7 +96,7 @@ class ProductRealtimeRequestStatusQueryInput(SorftimeInput):
 
 
 class ProductReviewsCollectionInput(SorftimeInput):
-    asin: str = Field(alias="ASIN")
+    asin: NonEmptyStr = Field(alias="ASIN")
     mode: int = Field(ge=0, le=1, alias="Mode")
     star: str | None = Field(default=None, alias="Star")
     only_purchase: int | None = Field(default=None, ge=0, le=1, alias="OnlyPurchase")
@@ -102,12 +104,12 @@ class ProductReviewsCollectionInput(SorftimeInput):
 
 
 class ProductReviewsCollectionStatusQueryInput(SorftimeInput):
-    asin: str = Field(alias="ASIN")
+    asin: NonEmptyStr = Field(alias="ASIN")
     update: int | None = Field(default=None, ge=1, le=240, alias="Update")
 
 
 class ProductReviewsQueryInput(SorftimeInput):
-    asin: str = Field(alias="ASIN")
+    asin: NonEmptyStr = Field(alias="ASIN")
     query_start_dt: date | None = Field(default=None, alias="Querystartdt")
     page_index: int | None = Field(default=None, ge=1, alias="PageIndex")
     star: str | None = Field(default=None, alias="Star")
@@ -115,7 +117,7 @@ class ProductReviewsQueryInput(SorftimeInput):
 
 
 class SimilarProductRealtimeRequestInput(SorftimeInput):
-    image: str = Field(alias="Image")
+    image: NonEmptyStr = Field(alias="Image")
 
 
 class SimilarProductRealtimeRequestStatusQueryInput(SorftimeInput):
@@ -123,7 +125,7 @@ class SimilarProductRealtimeRequestStatusQueryInput(SorftimeInput):
 
 
 class SimilarProductRealtimeRequestCollectionInput(SorftimeInput):
-    task_id: str = Field(alias="TaskId")
+    task_id: NonEmptyStr = Field(alias="TaskId")
 
 
 class KeywordQueryInput(SorftimeInput):
@@ -133,72 +135,72 @@ class KeywordQueryInput(SorftimeInput):
 
 
 class KeywordSearchResultsInput(SorftimeInput):
-    keyword: str = Field(alias="Keyword")
+    keyword: NonEmptyStr = Field(alias="Keyword")
     page_index: int | None = Field(default=None, ge=1, alias="PageIndex")
     page_size: int | None = Field(default=None, ge=20, le=200, alias="PageSize")
 
 
 class KeywordRequestInput(SorftimeInput):
-    keyword: str = Field(alias="Keyword")
+    keyword: NonEmptyStr = Field(alias="Keyword")
 
 
 class KeywordSearchResultTrendInput(SorftimeInput):
-    keyword: str = Field(alias="Keyword")
+    keyword: NonEmptyStr = Field(alias="Keyword")
     query_start: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$", alias="QueryStart")
     query_end: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$", alias="QueryEnd")
 
 
 class CategoryRequestKeywordInput(SorftimeInput):
-    node_id: str = Field(alias="NodeId")
+    node_id: NonEmptyStr = Field(alias="NodeId")
     page_index: int | None = Field(default=None, ge=1, alias="PageIndex")
     page_size: int | None = Field(default=None, ge=20, le=200, alias="PageSize")
 
 
 class ASINRequestKeywordInput(SorftimeInput):
-    asin: str = Field(alias="ASIN")
+    asin: NonEmptyStr = Field(alias="ASIN")
     page_index: int | None = Field(default=None, ge=1, alias="PageIndex")
     page_size: int | None = Field(default=None, ge=20, le=200, alias="PageSize")
 
 
 class KeywordProductRankingInput(SorftimeInput):
-    keyword: str = Field(alias="Keyword")
+    keyword: NonEmptyStr = Field(alias="Keyword")
     month: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$", alias="Month")
     page: int | None = Field(default=None, ge=1, alias="Page")
 
 
 class ASINKeywordRankingInput(SorftimeInput):
-    keyword: str = Field(alias="Keyword")
-    asin: str = Field(alias="ASIN")
+    keyword: NonEmptyStr = Field(alias="Keyword")
+    asin: NonEmptyStr = Field(alias="ASIN")
     query_start: date | None = Field(default=None, alias="QueryStart")
     query_end: date | None = Field(default=None, alias="QueryEnd")
     page: int | None = Field(default=None, ge=1, alias="Page")
 
 
 class KeywordExtendsInput(SorftimeInput):
-    keyword: str = Field(alias="Keyword")
+    keyword: NonEmptyStr = Field(alias="Keyword")
     page_index: int | None = Field(default=None, ge=1, alias="PageIndex")
     page_size: int | None = Field(default=None, ge=20, le=200, alias="PageSize")
 
 
 class ProductAssistantInput(SorftimeInput):
-    asin: str = Field(alias="Asin")
+    asin: NonEmptyStr = Field(alias="Asin")
     report_type: int = Field(ge=0, le=1, alias="Type")
 
 
 class CategoryAssistantInput(SorftimeInput):
-    node_id: str = Field(alias="NodeId")
+    node_id: NonEmptyStr = Field(alias="NodeId")
     report_type: int = Field(ge=0, le=1, alias="Type")
 
 
 class AIResultQueryInput(SorftimeInput):
     method: int = Field(ge=0, le=1, alias="Method")
-    params: str | None = Field(default=None, alias="Params")
+    params: NonEmptyStr | None = Field(default=None, alias="Params")
     query_start: date | None = Field(default=None, alias="QueryStart")
     query_end: date | None = Field(default=None, alias="QueryEnd")
 
 
 class AIResultInput(SorftimeInput):
-    task_id: str = Field(alias="TaskId")
+    task_id: NonEmptyStr = Field(alias="TaskId")
 
 
 class CoinStreamInput(SorftimeInput):

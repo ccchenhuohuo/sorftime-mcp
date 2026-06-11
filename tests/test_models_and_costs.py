@@ -12,7 +12,12 @@ from sorftime_mcp.catalog import (
     estimate_similar_product_realtime_request_cost,
 )
 from sorftime_mcp.models import (
+    AIResultInput,
+    ASINKeywordRankingInput,
+    ASINRequestKeywordInput,
     CategoryRequestInput,
+    CategoryRequestKeywordInput,
+    KeywordRequestInput,
     ProductRealtimeRequestInput,
     ProductRequestInput,
     ProductReviewsCollectionInput,
@@ -42,6 +47,29 @@ def test_input_validation_rejects_invalid_domain() -> None:
 def test_product_request_rejects_too_many_asins() -> None:
     with pytest.raises(ValidationError):
         ProductRequestInput(asin=[f"B00000000{i}" for i in range(11)])
+
+
+@pytest.mark.parametrize(
+    ("input_model", "payload"),
+    [
+        (CategoryRequestInput, {"NodeId": ""}),
+        (KeywordRequestInput, {"Keyword": "   "}),
+        (ASINRequestKeywordInput, {"ASIN": ""}),
+        (ASINKeywordRankingInput, {"ASIN": "B000000001", "Keyword": ""}),
+        (CategoryRequestKeywordInput, {"NodeId": ""}),
+        (AIResultInput, {"TaskId": ""}),
+        (SimilarProductRealtimeRequestInput, {"Image": ""}),
+    ],
+)
+def test_required_strings_reject_empty_values(input_model, payload) -> None:
+    with pytest.raises(ValidationError):
+        input_model.model_validate(payload)
+
+
+def test_required_strings_are_stripped() -> None:
+    input_model = KeywordRequestInput(Keyword="  power bank  ")
+
+    assert input_model.to_payload() == {"Keyword": "power bank"}
 
 
 def test_request_cost_estimators() -> None:
@@ -81,4 +109,3 @@ def test_audit_sanitizer_redacts_secrets_and_summarizes_images() -> None:
     assert sanitized["Authorization"] == "[REDACTED]"
     assert sanitized["nested"]["api_key"] == "[REDACTED]"
     assert "[truncated:250]" in sanitized["Image"]
-

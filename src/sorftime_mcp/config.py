@@ -3,17 +3,15 @@ from pathlib import Path
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+SORFTIME_API_BASE_URL = "https://standardapi.sorftime.com/api"
+
 
 class Settings(BaseSettings):
     """Runtime configuration loaded from environment variables."""
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore")
 
     sorftime_api_key: SecretStr = Field(alias="SORFTIME_API_KEY")
-    sorftime_api_base_url: str = Field(
-        default="https://standardapi.sorftime.com/api",
-        alias="SORFTIME_API_BASE_URL",
-    )
     sorftime_api_timeout_seconds: float = Field(
         default=120.0,
         gt=0,
@@ -38,7 +36,7 @@ class Settings(BaseSettings):
 
     @property
     def api_base_url(self) -> str:
-        return self.sorftime_api_base_url.rstrip("/")
+        return SORFTIME_API_BASE_URL
 
 
 def load_settings() -> Settings:

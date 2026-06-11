@@ -1,3 +1,4 @@
+import sys
 import time
 from typing import Any
 
@@ -40,6 +41,7 @@ class ToolExecutor:
                 domain=model.domain,
                 payload=payload,
                 estimated_request_cost=estimated_cost,
+                max_retries=self._max_retries_for(definition),
             )
             if response.code not in (None, 0):
                 status = "sorftime_error"
@@ -50,13 +52,14 @@ class ToolExecutor:
             raise
         finally:
             latency_ms = round((time.perf_counter() - start) * 1000, 2)
-            self._audit_logger.log(
+            self._log_audit(
                 {
                     "timestamp": utc_now_iso(),
                     "endpoint": definition.endpoint,
                     "domain": model.domain,
                     "params": sanitize_for_audit(payload),
                     "estimatedRequestCost": estimated_cost,
+                    "costUnit": definition.cost_unit,
                     "requestConsumed": response.request_consumed if response is not None else None,
                     "requestLeft": response.request_left if response is not None else None,
                     "latencyMs": latency_ms,
@@ -65,3 +68,15 @@ class ToolExecutor:
                     "sorftimeMessage": response.message if response is not None else error_message,
                 }
             )
+
+    def _max_retries_for(self, definition: MethodDefinition) -> int | None:
+        if definition.retry_safe:
+            return None
+        return 0
+
+    def _log_audit(self, record: dict[str, Any]) -> None:
+        try:
+            self._audit_logger.log(record)
+        except Exception as exc:
+            sys.stderr.write(f"Sorftime MCP audit log failed: {exc}\n")
+            sys.stderr.flush()

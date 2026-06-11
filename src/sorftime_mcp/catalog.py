@@ -45,6 +45,7 @@ from sorftime_mcp.models import (
 
 CostEstimator = Callable[[SorftimeInput], int]
 PublicToolKind = Literal["methods", "schema", "call", "shortcut"]
+CostUnit = Literal["request", "coin"]
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,9 @@ class MethodDefinition:
     examples: tuple[dict[str, object], ...]
     is_async: bool = False
     read_only: bool = True
+    starts_task: bool = False
+    retry_safe: bool = True
+    cost_unit: CostUnit = "request"
     shortcut_tool: str | None = None
 
     @property
@@ -153,6 +157,9 @@ def method_summary(definition: MethodDefinition) -> dict[str, object]:
         "requestCost": definition.request_cost_note,
         "async": definition.is_async,
         "readOnly": definition.read_only,
+        "startsTask": definition.starts_task,
+        "retrySafe": definition.retry_safe,
+        "costUnit": definition.cost_unit,
         "shortcutTool": definition.shortcut_tool,
         "required": list(definition.required_params),
         "optional": list(definition.optional_params),
@@ -200,11 +207,11 @@ METHOD_DEFINITIONS: tuple[MethodDefinition, ...] = (
     MethodDefinition("ProductQuery", "ProductQuery", "product", ProductQueryInput, fixed_cost(5), "Search products by Sorftime query conditions.", "5 requests", (example(Page=1, Query=1, QueryType="3", Pattern="anker"),), shortcut_tool="product_query"),
     MethodDefinition("AsinSalesVolume", "AsinSalesVolume", "product", AsinSalesVolumeInput, fixed_cost(1), "Get official ASIN sales volume history.", "1 request", (example(ASIN="B0CVM8TXHP", Page=1),)),
     MethodDefinition("ProductVariationHistory", "ProductVariationHistory", "product", ProductVariationHistoryInput, fixed_cost(1), "Get recent listing variation history.", "1 request", (example(ASIN="B0CVM8TXHP"),)),
-    MethodDefinition("ProductRealtimeRequest", "ProductRealtimeRequest", "product", ProductRealtimeRequestInput, estimate_product_realtime_request_cost, "Trigger real-time product collection.", "1 request; JP domain 7 costs 2", (example(ASIN="B0CVM8TXHP", Update=48),), is_async=True),
+    MethodDefinition("ProductRealtimeRequest", "ProductRealtimeRequest", "product", ProductRealtimeRequestInput, estimate_product_realtime_request_cost, "Trigger real-time product collection.", "1 request; JP domain 7 costs 2", (example(ASIN="B0CVM8TXHP", Update=48),), is_async=True, read_only=False, starts_task=True, retry_safe=False),
     MethodDefinition("ProductRealtimeRequestStatusQuery", "ProductRealtimeRequestStatusQuery", "product", ProductRealtimeRequestStatusQueryInput, fixed_cost(1), "Query real-time product collection status.", "1 request", (example(QueryDate="2024-11-01"),)),
-    MethodDefinition("ProductReviewsCollection", "ProductReviewsCollection", "product", ProductReviewsCollectionInput, estimate_reviews_collection_cost, "Trigger asynchronous review collection.", "2 coin points per successful 10 reviews; minimum 2", (example(ASIN="B0CVM8TXHP", Mode=1, Star="1,2,5", OnlyPurchase=1, Page=10),), is_async=True),
+    MethodDefinition("ProductReviewsCollection", "ProductReviewsCollection", "product", ProductReviewsCollectionInput, estimate_reviews_collection_cost, "Trigger asynchronous review collection.", "2 coin points per successful 10 reviews; minimum 2", (example(ASIN="B0CVM8TXHP", Mode=1, Star="1,2,5", OnlyPurchase=1, Page=10),), is_async=True, read_only=False, starts_task=True, retry_safe=False, cost_unit="coin"),
     MethodDefinition("ProductReviewsQuery", "ProductReviewsQuery", "product", ProductReviewsQueryInput, fixed_cost(5), "Query collected product reviews.", "5 requests", (example(ASIN="B0CVM8TXHP", PageIndex=1),)),
-    MethodDefinition("SimilarProductRealtimeRequest", "SimilarProductRealtimeRequest", "product", SimilarProductRealtimeRequestInput, estimate_similar_product_realtime_request_cost, "Trigger image-based similar product search.", "5 requests; JP domain 7 costs 6", (example(Image="data:image/jpeg;base64,..."),), is_async=True),
+    MethodDefinition("SimilarProductRealtimeRequest", "SimilarProductRealtimeRequest", "product", SimilarProductRealtimeRequestInput, estimate_similar_product_realtime_request_cost, "Trigger image-based similar product search.", "5 requests; JP domain 7 costs 6", (example(Image="data:image/jpeg;base64,..."),), is_async=True, read_only=False, starts_task=True, retry_safe=False),
     MethodDefinition("KeywordQuery", "KeywordQuery", "keyword", KeywordQueryInput, fixed_cost(5), "Query current ABA hot search keywords.", "5 requests", (example(PageIndex=1, PageSize=20),)),
     MethodDefinition("KeywordSearchResults", "KeywordSearchResults", "keyword", KeywordSearchResultsInput, fixed_cost(5), "Get recent search result products for an ABA keyword.", "5 requests", (example(Keyword="power bank", PageIndex=1, PageSize=20),)),
     MethodDefinition("KeywordRequest", "KeywordRequest", "keyword", KeywordRequestInput, fixed_cost(1), "Get keyword details, search volume, and CPC trends.", "1 request", (example(Keyword="power bank"),), shortcut_tool="keyword_request"),
@@ -214,8 +221,8 @@ METHOD_DEFINITIONS: tuple[MethodDefinition, ...] = (
     MethodDefinition("KeywordProductRanking", "KeywordProductRanking", "keyword", KeywordProductRankingInput, fixed_cost(5), "Get historical monthly keyword search result products.", "5 requests", (example(Keyword="power bank", Month="2024-12", Page=1),)),
     MethodDefinition("ASINKeywordRanking", "ASINKeywordRanking", "keyword", ASINKeywordRankingInput, fixed_cost(2), "Get ASIN ranking trend under a keyword.", "2 requests", (example(Keyword="power bank", ASIN="B07CZDXDG8", QueryStart="2024-12-01", QueryEnd="2025-01-01", Page=1),)),
     MethodDefinition("KeywordExtends", "KeywordExtends", "keyword", KeywordExtendsInput, fixed_cost(5), "Get ABA keyword extensions.", "5 requests", (example(Keyword="power bank", PageIndex=1, PageSize=200),)),
-    MethodDefinition("ProductAssistant", "ProductAssistant", "ai", ProductAssistantInput, fixed_cost(25), "Start Sorftime AI product analysis.", "25 requests", (example(Asin="B0CVM8TXHP", Type=0),), is_async=True),
-    MethodDefinition("CategoryAssistant", "CategoryAssistant", "ai", CategoryAssistantInput, fixed_cost(25), "Start Sorftime AI category analysis.", "25 requests", (example(NodeId="3743561", Type=0),), is_async=True),
+    MethodDefinition("ProductAssistant", "ProductAssistant", "ai", ProductAssistantInput, fixed_cost(25), "Start Sorftime AI product analysis.", "25 requests", (example(Asin="B0CVM8TXHP", Type=0),), is_async=True, read_only=False, starts_task=True, retry_safe=False),
+    MethodDefinition("CategoryAssistant", "CategoryAssistant", "ai", CategoryAssistantInput, fixed_cost(25), "Start Sorftime AI category analysis.", "25 requests", (example(NodeId="3743561", Type=0),), is_async=True, read_only=False, starts_task=True, retry_safe=False),
     MethodDefinition("AIResultQuery", "AIResultQuery", "ai", AIResultQueryInput, fixed_cost(1), "Query Sorftime AI task progress.", "1 request", (example(Method=0, Params="B0CVM8TXHP"),)),
     MethodDefinition("ProductReviewsCollectionStatusQuery", "ProductReviewsCollectionStatusQuery", "helper", ProductReviewsCollectionStatusQueryInput, fixed_cost(0), "Query review collection task status.", "0 requests", (example(ASIN="B0CVM8TXHP", Update=48),)),
     MethodDefinition("SimilarProductRealtimeRequestStatusQuery", "SimilarProductRealtimeRequestStatusQuery", "helper", SimilarProductRealtimeRequestStatusQueryInput, fixed_cost(0), "Query image search task status.", "0 requests", (example(Update=48),)),
@@ -231,7 +238,7 @@ METHOD_REGISTRY = {definition.method: definition for definition in METHOD_DEFINI
 PUBLIC_TOOL_DEFINITIONS: tuple[PublicToolDefinition, ...] = (
     PublicToolDefinition("sorftime_methods", "methods", "List supported Sorftime methods.", SorftimeMethodsInput),
     PublicToolDefinition("sorftime_method_schema", "schema", "Get schema and examples for one Sorftime method.", SorftimeMethodSchemaInput),
-    PublicToolDefinition("sorftime_call", "call", "Call any whitelisted read-only Sorftime method.", SorftimeCallInput),
+    PublicToolDefinition("sorftime_call", "call", "Call any whitelisted Sorftime method with registry validation.", SorftimeCallInput),
     PublicToolDefinition("product_request", "shortcut", "Shortcut for ProductRequest.", ProductRequestInput, "ProductRequest"),
     PublicToolDefinition("category_request", "shortcut", "Shortcut for CategoryRequest.", CategoryRequestInput, "CategoryRequest"),
     PublicToolDefinition("keyword_request", "shortcut", "Shortcut for KeywordRequest.", KeywordRequestInput, "KeywordRequest"),
