@@ -15,6 +15,7 @@ from sorftime_mcp.catalog import (
 )
 from sorftime_mcp.client import SorftimeClient
 from sorftime_mcp.config import Settings, load_settings
+from sorftime_mcp.domains import domains_payload
 from sorftime_mcp.executor import ToolExecutor
 from sorftime_mcp.models import SorftimeMethodSchemaInput, SorftimeMethodsInput
 
@@ -57,7 +58,7 @@ def register_tool(mcp: FastMCP, executor: ToolExecutor, definition: PublicToolDe
                 for method_definition in METHOD_DEFINITIONS
                 if model.category is None or method_definition.category == model.category
             ]
-            return {"count": len(methods), "methods": methods}
+            return {"count": len(methods), "domains": domains_payload(), "methods": methods}
         if definition.kind == "schema":
             model = SorftimeMethodSchemaInput.model_validate(input)
             return method_schema(get_method_definition(model.method))

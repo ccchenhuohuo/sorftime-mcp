@@ -3,13 +3,15 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from sorftime_mcp.domains import DOMAIN_ID_DESCRIPTION
+
 
 class SorftimeInput(BaseModel):
     """Base model for MCP tool input."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
-    domain: int = Field(default=1, ge=1, le=14, description="Amazon marketplace domain id.")
+    domain: int = Field(default=1, ge=1, le=14, description=DOMAIN_ID_DESCRIPTION)
 
     def to_payload(self) -> dict[str, Any]:
         return self.model_dump(
@@ -221,5 +223,5 @@ class SorftimeCallInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     method: str = Field(description="Whitelisted Sorftime method name.")
-    domain: int = Field(default=1, ge=1, le=14, description="Amazon marketplace domain id.")
+    domain: int = Field(default=1, ge=1, le=14, description=DOMAIN_ID_DESCRIPTION)
     params: dict[str, Any] = Field(default_factory=dict, description="Sorftime-native parameter object.")

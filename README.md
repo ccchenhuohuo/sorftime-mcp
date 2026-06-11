@@ -35,6 +35,27 @@ Every API call returns:
 }
 ```
 
+`domain` defaults to `1` (`US`). Discovery responses include the full Sorftime domain mapping:
+
+| domain | Site |
+| --- | --- |
+| 1 | US 美国 |
+| 2 | GB 英国 |
+| 3 | DE 德国 |
+| 4 | FR 法国 |
+| 5 | IN 印度 |
+| 6 | CA 加拿大 |
+| 7 | JP 日本 |
+| 8 | ES 西班牙 |
+| 9 | IT 意大利 |
+| 10 | MX 墨西哥 |
+| 11 | AE 阿联酋 |
+| 12 | AU 澳大利亚 |
+| 13 | BR 巴西 |
+| 14 | SA 沙特阿拉伯 |
+
+Historical backfill is not supported for IN, AE, AU, BR, or SA.
+
 ## Router Examples
 
 List supported methods:

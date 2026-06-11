@@ -5,6 +5,7 @@ from typing import Callable, Literal
 
 from pydantic import BaseModel
 
+from sorftime_mcp.domains import domains_payload
 from sorftime_mcp.models import (
     AIResultInput,
     AIResultQueryInput,
@@ -161,6 +162,7 @@ def method_summary(definition: MethodDefinition) -> dict[str, object]:
 def method_schema(definition: MethodDefinition) -> dict[str, object]:
     return {
         **method_summary(definition),
+        "domains": domains_payload(),
         "examples": list(definition.examples),
         "jsonSchema": definition.input_model.model_json_schema(by_alias=True),
     }

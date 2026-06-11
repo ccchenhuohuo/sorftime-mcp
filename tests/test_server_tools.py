@@ -29,12 +29,28 @@ async def test_discovery_tools_return_method_summary_and_schema(settings, fake_c
         schema_result = await client.call_tool("sorftime_method_schema", {"input": {"method": "ProductRequest"}})
 
     assert methods_result.data["count"] > 0
+    assert len(methods_result.data["domains"]) == 14
+    assert methods_result.data["domains"][0] == {
+        "id": 1,
+        "code": "US",
+        "name": "美国",
+        "supportsHistoricalBackfill": True,
+    }
+    assert methods_result.data["domains"][6]["code"] == "JP"
+    assert methods_result.data["domains"][11] == {
+        "id": 12,
+        "code": "AU",
+        "name": "澳大利亚",
+        "supportsHistoricalBackfill": False,
+    }
     assert all(method["category"] == "product" for method in methods_result.data["methods"])
     assert schema_result.data["method"] == "ProductRequest"
+    assert len(schema_result.data["domains"]) == 14
     assert schema_result.data["required"] == ["ASIN"]
     assert schema_result.data["shortcutTool"] == "product_request"
     assert schema_result.data["examples"]
     assert "jsonSchema" in schema_result.data
+    assert "1=US" in schema_result.data["jsonSchema"]["properties"]["domain"]["description"]
 
 
 async def test_sorftime_call_routes_low_frequency_method(settings, fake_client) -> None:
