@@ -1,31 +1,74 @@
 {
   "name": "sorftime-mcp",
-  "version": "0.1.0",
-  "description": "Sorftime API MCP stdio launcher for Codex and Claude Code.",
+  "version": "1.0.0",
+  "description": "Governed Sorftime MCP server, AI Skill, and full operations CLI",
+  "private": true,
+  "type": "module",
   "bin": {
-    "sorftime-mcp": "bin/sorftime-mcp.js"
+    "sorftime": "dist/cli.js",
+    "sorftime-mcp": "dist/mcp/stdio.js"
   },
   "files": [
-    "bin",
-    "README.md"
+    "dist",
+    "skills",
+    "docs",
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "LICENSE"
   ],
+  "scripts": {
+    "build": "tsup src/cli.ts src/mcp/stdio.ts src/mcp/http.ts --format esm --dts --clean",
+    "dev": "tsx src/cli.ts",
+    "dev:mcp:stdio": "tsx src/mcp/stdio.ts",
+    "dev:mcp:http": "tsx watch src/mcp/http.ts",
+    "start:mcp:stdio": "node dist/mcp/stdio.js",
+    "start:mcp:http": "node dist/mcp/http.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "sorftime",
+    "mcp",
+    "agent-skill",
+    "amazon",
+    "seller",
+    "cli"
+  ],
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ccchenhuohuo/sorftime-mcp.git"
   },
-  "keywords": [
-    "mcp",
-    "sorftime",
-    "codex",
-    "claude-code"
-  ],
-  "engines": {
-    "node": ">=18"
+  "homepage": "https://github.com/ccchenhuohuo/sorftime-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/ccchenhuohuo/sorftime-mcp/issues"
   },
-  "publishConfig": {
-    "access": "public"
+  "dependencies": {
+    "@inquirer/prompts": "^7.8.4",
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "commander": "^14.0.0",
+    "dotenv": "17.4.2",
+    "express": "5.2.1",
+    "zod": "4.4.3",
+    "yaml": "^2.8.1"
   },
-  "scripts": {
-    "test": "node --check bin/sorftime-mcp.js"
-  }
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "@types/express": "5.0.6",
+    "@types/node": "^24.0.14",
+    "eslint": "^9.31.0",
+    "tsx": "^4.20.3",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.37.0",
+    "vitest": "^3.2.4"
+  },
+  "packageManager": "pnpm@11.7.0"
 }

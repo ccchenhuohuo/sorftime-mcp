@@ -1,0 +1,7 @@
+interface:
+  display_name: "Sorftime Research"
+  short_description: "用受治理的 Sorftime MCP 查询配额与既有监控结果"
+  default_prompt: "Use $sorftime-research to answer this Sorftime market-data question through the governed MCP tools and preserve cost, scope, and evidence boundaries."
+
+policy:
+  allow_implicit_invocation: true
